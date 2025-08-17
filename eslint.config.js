@@ -45,4 +45,34 @@ export default [
       ],
     },
   },
+  {
+    // Node.js environment for scripts, tests, and config files
+    files: ["scripts/**/*.ts", "tests/**/*.ts", "*.config.ts", "*.config.js"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.node,
+        ...globals.browser, // Some test files might need browser globals too
+      },
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...tseslint.configs.recommended.rules,
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ];

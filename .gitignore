@@ -94,3 +94,8 @@ storybook-static/
 # Temporary folders
 tmp/
 temp/
+
+# Browser automation captures
+browser-captures/
+test-results/
+playwright-report/
