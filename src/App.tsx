@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { tasksCollection, sampleTasks, queryClient, generateId } from './db'
 import { useLiveQuery } from './hooks/useLiveQuery'
+import { useOptimisticMutation } from './hooks/useOptimisticMutation'
 
 function AppContent() {
   // Chunk 2C: Replace manual state with live query!
@@ -15,6 +16,9 @@ function AppContent() {
     },
     1000 // refetch every 1000ms (1 second)
   )
+
+  // Chunk 3B: Add optimistic mutations for instant UI updates!
+  const { addTask, updateTask, isAddingTask, isUpdatingTask } = useOptimisticMutation()
 
   // Initialize the collection with sample data (only once)
   useEffect(() => {
@@ -73,7 +77,7 @@ function AppContent() {
         </span>
       </div>
 
-      {/* Chunk 2D: Interactive buttons to test live queries */}
+      {/* Chunk 3B: Compare optimistic vs non-optimistic mutations */}
       <div style={{ 
         background: '#fff9e6', 
         border: '1px solid #ffb800', 
@@ -81,46 +85,74 @@ function AppContent() {
         padding: '16px', 
         marginBottom: '20px' 
       }}>
-        <h3 style={{ marginBottom: '12px', color: '#cc8800' }}>🎮 Test Live Queries:</h3>
+        <h3 style={{ marginBottom: '12px', color: '#cc8800' }}>⚡ Test Optimistic vs Regular Mutations:</h3>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
-            onClick={async () => {
+            onClick={() => {
               const newTask = {
                 id: generateId(),
-                title: `New task ${new Date().getSeconds()}`,
+                title: `⚡ Optimistic task ${new Date().getSeconds()}`,
                 completed: false,
                 createdAt: new Date()
               }
-              await tasksCollection.add(newTask)
-              console.log('✅ Added new task - watch the live query update!', newTask)
+              // 🚀 OPTIMISTIC: Updates UI instantly!
+              addTask(newTask)
             }}
+            disabled={isAddingTask}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: isAddingTask ? '#6c757d' : '#28a745',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
+              cursor: isAddingTask ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              position: 'relative'
             }}
           >
-            ➕ Add Random Task
+            {isAddingTask ? '⏳ Adding...' : '⚡ Add Optimistic Task'}
           </button>
 
           <button
-            onClick={async () => {
+            onClick={() => {
               const incompleteTasks = tasks.filter(task => !task.completed)
               if (incompleteTasks.length > 0) {
                 const taskToComplete = incompleteTasks[0]
-                await tasksCollection.update(taskToComplete.id, { completed: true })
-                console.log('✅ Completed task - watch the live query update!', taskToComplete)
+                // 🚀 OPTIMISTIC: Updates UI instantly!
+                updateTask({ id: taskToComplete.id, updates: { completed: true } })
               } else {
                 console.log('📝 No incomplete tasks to complete')
               }
             }}
+            disabled={isUpdatingTask}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#28a745',
+              backgroundColor: isUpdatingTask ? '#6c757d' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isUpdatingTask ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {isUpdatingTask ? '⏳ Updating...' : '⚡ Complete Optimistic'}
+          </button>
+
+          <button
+            onClick={async () => {
+              const newTask = {
+                id: generateId(),
+                title: `🐌 Regular task ${new Date().getSeconds()}`,
+                completed: false,
+                createdAt: new Date()
+              }
+              // 🐌 OLD WAY: Wait for backend, then live query updates in ~1 second
+              await tasksCollection.add(newTask)
+              console.log('🐌 Added regular task - wait for live query update!', newTask)
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6c757d',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -128,35 +160,13 @@ function AppContent() {
               fontSize: '14px'
             }}
           >
-            ✅ Complete First Task
-          </button>
-
-          <button
-            onClick={async () => {
-              const completedTasks = tasks.filter(task => task.completed)
-              if (completedTasks.length > 0) {
-                const taskToUncomplete = completedTasks[0]
-                await tasksCollection.update(taskToUncomplete.id, { completed: false })
-                console.log('🔄 Uncompleted task - watch the live query update!', taskToUncomplete)
-              } else {
-                console.log('📝 No completed tasks to uncomplete')
-              }
-            }}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#ffc107',
-              color: 'black',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            🔄 Undo Last Complete
+            🐌 Add Regular (Slow)
           </button>
         </div>
         <p style={{ fontSize: '12px', color: '#996600', marginTop: '8px' }}>
-          💡 Click any button and watch the task list update automatically thanks to live queries!
+          ⚡ <strong>Optimistic buttons:</strong> Updates appear instantly!<br/>
+          🐌 <strong>Regular button:</strong> Wait ~1 second for live query update<br/>
+          💡 Notice the difference in responsiveness!
         </p>
       </div>
       
@@ -220,16 +230,16 @@ function AppContent() {
         padding: '16px', 
         marginTop: '20px' 
       }}>
-        <h3>🎯 What you just learned in Step 2 (All Chunks):</h3>
+        <h3>🎯 What you just learned in Step 3 (Chunks A & B):</h3>
         <ul>
-          <li>✅ <strong>Chunk 2A:</strong> Custom <code>useLiveQuery</code> hook</li>
-          <li>✅ <strong>Chunk 2B:</strong> QueryClient provider setup</li>
-          <li>✅ <strong>Chunk 2C:</strong> Replaced manual state with live queries</li>
-          <li>✅ <strong>Chunk 2D:</strong> Interactive buttons to test live updates</li>
+          <li>✅ <strong>Chunk 3A:</strong> <code>useOptimisticMutation</code> hook</li>
+          <li>✅ <strong>Chunk 3B:</strong> Optimistic vs regular mutation comparison</li>
+          <li>✅ <strong>Key concept:</strong> Instant UI updates with background sync</li>
+          <li>✅ <strong>Error handling:</strong> Automatic rollback on failure</li>
         </ul>
-        <p><strong>🎮 Try the buttons above!</strong> Click "Add Random Task" and watch it appear automatically!</p>
-        <p><strong>🔍 Console logs:</strong> See live query fetches + button actions in real-time</p>
-        <p><strong>Next up:</strong> Step 3 - Optimistic mutations for instant UI! ⚡</p>
+        <p><strong>⚡ Try the optimistic buttons!</strong> Notice how they update instantly vs the slow regular button!</p>
+        <p><strong>🔍 Console logs:</strong> See "Optimistic update" messages + backend confirmations</p>
+        <p><strong>Next up:</strong> Step 4 - Cross-collection queries and relationships! 🔗</p>
       </div>
     </div>
   )
